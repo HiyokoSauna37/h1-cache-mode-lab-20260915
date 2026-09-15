@@ -1,0 +1,42 @@
+name: c1-cache-mode-env-override
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cause-absent-control:
+    runs-on: ubuntu-latest
+    cache-mode: read
+    steps:
+      - name: Record effective mode
+        run: printf 'effective=%s\n' "$ACTIONS_CACHE_MODE"
+      - name: Create control canary
+        run: |
+          mkdir -p .cache-c1-control
+          printf 'control-%s\n' "$GITHUB_RUN_ID" > .cache-c1-control/canary.txt
+      - name: Attempt control save
+        uses: actions/cache@v4
+        with:
+          path: .cache-c1-control
+          key: c1-control-${{ github.run_id }}
+
+  env-override-treatment:
+    runs-on: ubuntu-latest
+    cache-mode: read
+    env:
+      ACTIONS_CACHE_MODE: write
+    steps:
+      - name: Record effective mode
+        run: printf 'effective=%s\n' "$ACTIONS_CACHE_MODE"
+      - name: Create treatment canary
+        run: |
+          mkdir -p .cache-c1-treatment
+          printf 'treatment-%s\n' "$GITHUB_RUN_ID" > .cache-c1-treatment/canary.txt
+      - name: Attempt treatment save
+        uses: actions/cache@v4
+        with:
+          path: .cache-c1-treatment
+          key: c1-treatment-${{ github.run_id }}

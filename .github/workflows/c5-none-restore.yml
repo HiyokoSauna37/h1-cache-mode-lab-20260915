@@ -1,0 +1,71 @@
+name: c5-none-restore
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: write
+    steps:
+      - name: Create owned canary
+        run: |
+          mkdir -p .cache-c5
+          printf 'owned-c5-%s\n' "$GITHUB_RUN_ID" > .cache-c5/canary.txt
+      - name: Save owned canary cache
+        uses: actions/cache/save@v4
+        with:
+          path: .cache-c5
+          key: c5-owned-${{ github.run_id }}
+
+  read-control:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - name: Restore through allowed read mode
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c5
+          key: c5-owned-${{ github.run_id }}
+      - name: Prove exact canary bytes
+        run: |
+          test '${{ steps.restore.outputs.cache-hit }}' = 'true'
+          test "$(cat .cache-c5/canary.txt)" = "owned-c5-${GITHUB_RUN_ID}"
+          printf 'read_control=exact-canary\n'
+
+  none-treatment:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: none
+    env:
+      ACTIONS_CACHE_MODE: read
+    steps:
+      - name: Attempt restore through none-mode token
+        id: restore
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c5
+          key: c5-owned-${{ github.run_id }}
+      - name: Reject unexpected exact restore
+        run: |
+          printf 'restore_step_outcome=%s\n' '${{ steps.restore.outcome }}'
+          if test -f .cache-c5/canary.txt; then
+            test "$(cat .cache-c5/canary.txt)" = "owned-c5-${GITHUB_RUN_ID}"
+            printf 'none_mode_restored=exact-canary\n'
+            exit 42
+          fi
+          mkdir -p .absence-check
+          : > .absence-check/known-present
+          test -f .absence-check/known-present
+          printf 'absence_check_control=detected-known-present\n'
+          printf 'none_mode_restored=no-file\n'

@@ -7,6 +7,22 @@ permissions:
   contents: read
 
 jobs:
+  write-positive-control:
+    runs-on: ubuntu-latest
+    cache-mode: write
+    steps:
+      - name: Record effective mode
+        run: printf 'effective=%s\n' "$ACTIONS_CACHE_MODE"
+      - name: Create positive-control canary
+        run: |
+          mkdir -p .cache-c1-positive
+          printf 'positive-%s\n' "$GITHUB_RUN_ID" > .cache-c1-positive/canary.txt
+      - name: Save positive-control cache
+        uses: actions/cache@v4
+        with:
+          path: .cache-c1-positive
+          key: c1-positive-${{ github.run_id }}
+
   cause-absent-control:
     runs-on: ubuntu-latest
     cache-mode: read

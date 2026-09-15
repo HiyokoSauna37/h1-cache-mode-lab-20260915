@@ -1,0 +1,11 @@
+name: c3-caller-unrestricted-control
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  call-middle:
+    uses: ./.github/workflows/c3-middle.yml

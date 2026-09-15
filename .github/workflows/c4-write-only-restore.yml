@@ -1,0 +1,71 @@
+name: c4-write-only-restore
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: write
+    steps:
+      - name: Create owned canary
+        run: |
+          mkdir -p .cache-c4
+          printf 'owned-c4-%s\n' "$GITHUB_RUN_ID" > .cache-c4/canary.txt
+      - name: Save owned canary cache
+        uses: actions/cache/save@v4
+        with:
+          path: .cache-c4
+          key: c4-owned-${{ github.run_id }}
+
+  read-control:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - name: Restore through allowed read mode
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c4
+          key: c4-owned-${{ github.run_id }}
+      - name: Prove exact canary bytes
+        run: |
+          test '${{ steps.restore.outputs.cache-hit }}' = 'true'
+          test "$(cat .cache-c4/canary.txt)" = "owned-c4-${GITHUB_RUN_ID}"
+          printf 'read_control=exact-canary\n'
+
+  write-only-treatment:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: write-only
+    env:
+      ACTIONS_CACHE_MODE: read
+    steps:
+      - name: Attempt restore through write-only token
+        id: restore
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c4
+          key: c4-owned-${{ github.run_id }}
+      - name: Reject unexpected exact restore
+        run: |
+          printf 'restore_step_outcome=%s\n' '${{ steps.restore.outcome }}'
+          if test -f .cache-c4/canary.txt; then
+            test "$(cat .cache-c4/canary.txt)" = "owned-c4-${GITHUB_RUN_ID}"
+            printf 'write_only_restored=exact-canary\n'
+            exit 42
+          fi
+          mkdir -p .absence-check
+          : > .absence-check/known-present
+          test -f .absence-check/known-present
+          printf 'absence_check_control=detected-known-present\n'
+          printf 'write_only_restored=no-file\n'

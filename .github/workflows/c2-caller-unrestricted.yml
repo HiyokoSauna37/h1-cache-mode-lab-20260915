@@ -1,0 +1,11 @@
+name: c2-caller-unrestricted-control
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  call-reusable:
+    uses: ./.github/workflows/c2-callee.yml

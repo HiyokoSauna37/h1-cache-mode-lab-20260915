@@ -1,0 +1,11 @@
+name: c3-nested-middle
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  call-leaf:
+    uses: ./.github/workflows/c3-leaf.yml

@@ -1,0 +1,22 @@
+name: c2-reusable-callee
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  save-cache:
+    runs-on: ubuntu-latest
+    cache-mode: write
+    steps:
+      - name: Create callee canary
+        run: |
+          mkdir -p .cache-c2
+          printf 'callee-%s\n' "$GITHUB_RUN_ID" > .cache-c2/canary.txt
+      - name: Save callee cache
+        uses: actions/cache@v4
+        with:
+          path: .cache-c2
+          key: c2-callee-${{ github.run_id }}

